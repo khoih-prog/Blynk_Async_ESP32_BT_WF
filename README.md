@@ -9,7 +9,7 @@
 ---
 ---
 
-#### Why do we need the new Async [Blynk_Async_ESP32_BT_WF library](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF)
+### Why do we need the new Async [Blynk_Async_ESP32_BT_WF library](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF)
 
 - Using asynchronous network means that you can handle **more than one connection at the same time**
 - **You are called once the request is ready and parsed**
@@ -394,7 +394,7 @@ Then click `Save`. After you restarted, you will see your built-in LED turned OF
 
 ## Example [Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
 
-#### 1. File [Async_ESP32_BLE_WF.ino](examples/Async_ESP32_BLE_WF/ESP32_BLE_WF.ino)
+#### 1. File [Async_ESP32_BLE_WF.ino](examples/Async_ESP32_BLE_WF/Async_ESP32_BLE_WF.ino)
 
 ```cpp
 #include "defines.h"
