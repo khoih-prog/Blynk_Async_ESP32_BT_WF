@@ -22,7 +22,7 @@
    Version Modified By   Date      Comments
    ------- -----------  ---------- -----------
     1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.16 to sync with BlynkESP32_BT_WF v1.0.6.
+                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
  *****************************************************************************************************************************/
 
 #ifndef BlynkSimpleEsp32_BLE_WF_h
