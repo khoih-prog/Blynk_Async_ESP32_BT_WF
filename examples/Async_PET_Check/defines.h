@@ -53,9 +53,9 @@
 // Those above #define's must be placed before #include <BlynkSimpleEsp32_Async_WFM.h>
 
 #include <BlynkSimpleEsp32_Async_BLE_WF.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include "BLEScan.h"
+//#include <BLEDevice.h>
+//#include <BLEServer.h>
+//#include "BLEScan.h"
 
 #define USE_BLYNK_WM          true
 //#define USE_BLYNK_WM          false
@@ -76,6 +76,10 @@
   char auth[] = "your-token";
   
 #endif
+
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include "BLEScan.h"
 
 #ifndef LED_BUILTIN
   #define LED_BUILTIN       2         // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, control on-board LED
