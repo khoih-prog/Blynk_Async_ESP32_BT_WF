@@ -72,7 +72,7 @@ The best and easiest way is to use `Arduino Library Manager`. Search for `Blynk_
 1. Install [VS Code](https://code.visualstudio.com/)
 2. Install [PlatformIO](https://platformio.org/platformio-ide)
 3. Install **Blynk_Async_ESP32_BT_WF** library by using [Library Manager](https://docs.platformio.org/en/latest/librarymanager/). Search for **Blynk_Async_ESP32_BT_WF** in [Platform.io Author's Libraries](https://platformio.org/lib/search?query=author:%22Khoi%20Hoang%22)
-4. Use included [platformio.ini](examples/platformio/platformio.ini) file from examples to ensure that all dependent libraries will installed automatically.
+4. Use included [platformio.ini](platformio/platformio.ini) file from examples to ensure that all dependent libraries will installed automatically. Please visit documentation for the other options and examples at [Project Configuration File](https://docs.platformio.org/page/projectconf.html)
 
 ---
 ---
@@ -392,7 +392,7 @@ Then click `Save`. After you restarted, you will see your built-in LED turned OF
 ---
 ---
 
-## Example [Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
+### Example [Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
 
 #### 1. File [Async_ESP32_BLE_WF.ino](examples/Async_ESP32_BLE_WF/Async_ESP32_BLE_WF.ino)
 
@@ -1150,11 +1150,13 @@ BBBB
 
 ### Contributions and thanks
 
-1. Thanks to [Crosswalkersam](https://community.blynk.cc/u/Crosswalkersam) for the original code and request to inspire the work. See [Select connection Type via Switch](https://community.blynk.cc/t/select-connection-type-via-switch/43176)
-2. Thanks to [Miguel Alexandre Wisintainer](https://github.com/tcpipchip) for working with, developing, debugging, testing and contributing example [Async_PET_Check](examples/Async_PET_Check). See also [nina-w102-ble-detector-presenca-de-pet](https://nina-b302-scanner-presenca.blogspot.com/2020/06/nina-w102-ble-detector-presenca-de-pet.html)
+1. Thanks to [me-no-dev](https://github.com/me-no-dev) for great [ESPAsyncWebServer Library](https://github.com/me-no-dev/ESPAsyncWebServer) and [AsyncTCP](https://github.com/me-no-dev/AsyncTCP).
+2. Thanks to [Crosswalkersam](https://community.blynk.cc/u/Crosswalkersam) for the original code and request to inspire the work. See [Select connection Type via Switch](https://community.blynk.cc/t/select-connection-type-via-switch/43176)
+3. Thanks to [Miguel Alexandre Wisintainer](https://github.com/tcpipchip) for working with, developing, debugging, testing and contributing example [Async_PET_Check](examples/Async_PET_Check). See also [nina-w102-ble-detector-presenca-de-pet](https://nina-b302-scanner-presenca.blogspot.com/2020/06/nina-w102-ble-detector-presenca-de-pet.html)
 
 <table>
   <tr>
+    <td align="center"><a href="https://github.com/me-no-dev"><img src="https://github.com/me-no-dev.png" width="100px;" alt="me-no-dev"/><br /><sub><b>⭐️⭐️ me-no-dev</b></sub></a><br /></td>
     <td align="center"><a href="https://github.com/Crosswalkersam"><img src="https://github.com/Crosswalkersam.png" width="100px;" alt="Crosswalkersam"/><br /><sub><b>Crosswalkersam</b></sub></a><br /></td>
     <td align="center"><a href="https://github.com/tcpipchip"><img src="https://github.com/tcpipchip.png" width="100px;" alt="tcpipchip"/><br /><sub><b>tcpipchip</b></sub></a><br /></td>
   </tr> 
