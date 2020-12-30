@@ -134,7 +134,7 @@ This [**BlynkESP32_BT_WF** library](https://github.com/khoih-prog/BlynkESP32_BT_
 4. [`ESP_DoubleResetDetector library 1.1.1+`](https://github.com/khoih-prog/ESP_DoubleResetDetector) to use DRD feature. To install, check [![arduino-library-badge](https://www.ardu-badge.com/badge/ESP_DoubleResetDetector.svg?)](https://www.ardu-badge.com/ESP_DoubleResetDetector).
 5. [`ESPAsyncWebServer v1.2.3+`](https://github.com/me-no-dev/ESPAsyncWebServer)
 6. [`AsyncTCP v1.1.1+`](https://github.com/me-no-dev/AsyncTCP)
-7. [`LittleFS_esp32 v1.0.5+](https://github.com/lorol/LITTLEFS) to use ESP32 LIttleFS
+7. [`LittleFS_esp32 v1.0.5+`](https://github.com/lorol/LITTLEFS) to use ESP32 LIttleFS
  
 ---
 
