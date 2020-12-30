@@ -35,7 +35,7 @@
   * [ 3. Example of Default Credentials](#3-example-of-default-credentials)
   * [ 4. How to add dynamic parameters from sketch](#4-how-to-add-dynamic-parameters-from-sketch)
   * [ 5. If you don't need to add dynamic parameters](#5-if-you-dont-need-to-add-dynamic-parameters)
-* [Why using this BlynkESP32_BT_WF with MultiWiFi-MultiBlynk features](#why-using-this-blynkesp32_bt_wf-with-multiwifi-multiblynk-features)
+* [Why using this Blynk_Async_ESP32_BT_WF with MultiWiFi-MultiBlynk features](#why-using-this-blynk_async_esp32_bt_wf-with-multiwifi-multiblynk-features)
 * [Important Notes for using Dynamic Parameters' ids](#important-notes-for-using-dynamic-parameters-ids)
 * [Examples](#examples)
   * [ 1. Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
@@ -71,7 +71,7 @@
 ---
 ---
 
-### Why do we need the new Async [Blynk_Async_ESP32_BT_WF library](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF)
+### Why do we need this Async [Blynk_Async_ESP32_BT_WF library](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF)
 
 #### Features
 
@@ -208,7 +208,7 @@ In your code, just replacing
 3. `BlynkSimpleEsp32_BT_WF.h`   with `BlynkSimpleEsp32_Async_BT_WF.h`
 4. `BlynkSimpleEsp32_BLE_WF.h`  with `BlynkSimpleEsp32_Async_BLE_WF.h`
 
-### How to to migrate from Blynk
+### How to migrate from Blynk
 
 In your code, replace
 
