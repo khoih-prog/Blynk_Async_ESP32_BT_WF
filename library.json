@@ -48,6 +48,12 @@
       "name": "AsyncTCP",
       "version": "*",
       "platforms": ["espressif32"]
+    },
+    {
+      "owner": "lorol",
+      "name": "LittleFS_esp32",
+      "version": "^1.0.5",
+      "platforms": ["espressif32"]
     }
   ],
   "platforms": ["espressif32"],
