@@ -1,20 +1,20 @@
-## Contributing to BlynkESP32_BT_WF
+## Contributing to Blynk_Async_ESP32_BT_WF
 
 ### Reporting Bugs
 
-Please report bugs in BlynkESP32_BT_WF if you find them.
+Please report bugs in Blynk_Async_ESP32_BT_WF if you find them.
 
 However, before reporting a bug please check through the following:
 
-* [Existing Open Issues](https://github.com/khoih-prog/BlynkESP32_BT_WF/issues) - someone might have already encountered this.
+* [Existing Open Issues](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF/issues) - someone might have already encountered this.
 
-If you don't find anything, please [open a new issue](https://github.com/khoih-prog/BlynkESP32_BT_WF/issues/new).
+If you don't find anything, please [open a new issue](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF/issues/new).
 
 ### How to submit a bug report
 
 Please ensure to specify the following:
 
-* Arduino IDE version (e.g. 1.8.11) or Platform.io version
+* Arduino IDE version (e.g. 1.8.13) or Platform.io version
 * `ESP32` Core Version (e.g. ESP32 core v1.0.4)
 * Contextual information (e.g. what you were trying to achieve)
 * Simplest possible steps to reproduce
@@ -26,10 +26,10 @@ Please ensure to specify the following:
 ### Example
 
 ```
-Arduino IDE version: 1.8.11
+Arduino IDE version: 1.8.13
 ESP32 Core Version 1.0.4
-OS: Ubuntu 16.04 LTS
-Linux Inspiron 4.4.0-170-generic #199-Ubuntu SMP Thu Nov 14 01:45:04 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
+OS: Ubuntu 20.04 LTS
+Linux xy-Inspiron-3593 5.4.0-51-generic #56-Ubuntu SMP Mon Oct 5 14:28:49 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
 
 Context:
 The board couldn't autoreconnect to Local Blynk Server after router power recycling.
@@ -45,7 +45,7 @@ Steps to reproduce:
 
 Feel free to post feature requests. It's helpful if you can explain exactly why the feature would be useful.
 
-There are usually some outstanding feature requests in the [existing issues list](https://github.com/khoih-prog/BlynkESP32_BT_WF/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement), feel free to add comments to them.
+There are usually some outstanding feature requests in the [existing issues list](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement), feel free to add comments to them.
 
 ### Sending Pull Requests
 

@@ -1,6 +1,6 @@
 /****************************************************************************************************************************
    Credentials.h
-   For ESP32 boards
+   For ESP32 using WiFi along with BlueTooth BLE
 
    Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
    Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
@@ -9,12 +9,13 @@
    Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
    Licensed under MIT license
    
-   Version: 1.0.6
+   Version: 1.1.0
 
    Version Modified By   Date      Comments
    ------- -----------  ---------- -----------
     1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.16 to sync with BlynkESP32_BT_WF v1.0.6.
+                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
+    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
  *****************************************************************************************************************************/
 
 #ifndef Credentials_h

@@ -1,6 +1,6 @@
 /****************************************************************************************************************************
    Async_ESP32_BT_WF.ino
-   For ESP32 using WiFi along with BlueTooth BT
+   For ESP32 using WiFi along with BlueTooth BLE
 
    Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
    Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
@@ -8,13 +8,14 @@
    Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
    Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
    Licensed under MIT license
-
-   Version: 1.0.6
+   
+   Version: 1.1.0
 
    Version Modified By   Date      Comments
    ------- -----------  ---------- -----------
     1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.16 to sync with BlynkESP32_BT_WF v1.0.6.
+                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
+    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
  *****************************************************************************************************************************/
 /****************************************************************************************************************************
    Important Notes:
@@ -107,17 +108,25 @@ void setup()
   Serial.begin(115200);
   while (!Serial);
 
-#if ( USE_SPIFFS)
-  Serial.print(F("\nStarting Async_ESP32_BT_WF using SPIFFS"));
+#if (USE_LITTLEFS)
+  Serial.print(F("\nStarting Async_ESP32_BT_WF using LITTLEFS"));
+#elif (USE_SPIFFS)
+  Serial.print(F("\nStarting Async_ESP32_BLE_WF using SPIFFS"));  
 #else
-  Serial.print(F("\nStarting Async_ESP32_BT_WF using EEPROM"));
+  Serial.print(F("\nStarting Async_ESP32_BLE_WF using EEPROM"));
 #endif
 
 #if USE_SSL
   Serial.println(" with SSL on " + String(ARDUINO_BOARD));
 #else
   Serial.println(" without SSL on " + String(ARDUINO_BOARD));
-#endif  
+#endif
+
+  Serial.println(BLYNK_ASYNC_ESP32_BT_WF_VERSION);
+  
+#if USE_BLYNK_WM  
+  Serial.println(ESP_DOUBLE_RESET_DETECTOR_VERSION);
+#endif 
 
   pinMode(WIFI_BT_SELECTION_PIN, INPUT_PULLUP);
 

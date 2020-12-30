@@ -9,7 +9,83 @@
 ---
 ---
 
+## Table of Contents
+
+* [Why do we need this Async Blynk_Async_ESP32_BT_WF library](#why-do-we-need-this-async-blynk_async_esp32_bt_wf-library)
+  * [Features](#features)
+  * [Why Async is better](#why-async-is-better)
+  * [Currently supported Boards](#currently-supported-boards)
+* [Changelog](#changelog)
+  * [Major Releases v1.1.0](#major-releases-v110)
+  * [Releases v1.0.6](#releases-v106)
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+  * [Use Arduino Library Manager](#use-arduino-library-manager)
+  * [Manual Install](#manual-install)
+  * [VS Code & PlatformIO](#vs-code--platformio)
+* [HOWTO Use analogRead() with ESP32 running WiFi and/or BlueTooth (BT/BLE)](#howto-use-analogread-with-esp32-running-wifi-andor-bluetooth-btble)
+  * [1. ESP32 has 2 ADCs, named ADC1 and ADC2](#1--esp32-has-2-adcs-named-adc1-and-adc2)
+  * [2. ESP32 ADCs functions](#2-esp32-adcs-functions)
+  * [3. ESP32 WiFi uses ADC2 for WiFi functions](#3-esp32-wifi-uses-adc2-for-wifi-functions)
+* [How to migrate from BlynkESP32_BT_WF library](#how-to-migrate-from-blynkesp32_bt_wf-library)
+* [How to migrate from Blynk](#how-to-migrate-from-blynk)
+* [HOWTO use default Credentials and have them pre-loaded onto Config Portal](#howto-use-default-credentials-and-have-them-pre-loaded-onto-config-portal)
+  * [ 1. To load Default Credentials](#1-to-load-default-credentials)
+  * [ 2. To use system default to load "blank" when there is no valid Credentials](#2-to-use-system-default-to-load-blank-when-there-is-no-valid-credentials)
+  * [ 3. Example of Default Credentials](#3-example-of-default-credentials)
+  * [ 4. How to add dynamic parameters from sketch](#4-how-to-add-dynamic-parameters-from-sketch)
+  * [ 5. If you don't need to add dynamic parameters](#5-if-you-dont-need-to-add-dynamic-parameters)
+* [Why using this BlynkESP32_BT_WF with MultiWiFi-MultiBlynk features](#why-using-this-blynkesp32_bt_wf-with-multiwifi-multiblynk-features)
+* [Important Notes for using Dynamic Parameters' ids](#important-notes-for-using-dynamic-parameters-ids)
+* [Examples](#examples)
+  * [ 1. Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
+  * [ 2. Async_ESP32_BT_WF](examples/Async_ESP32_BT_WF)
+  * [ 3. Async_Geiger_Counter_BLE](examples/Async_Geiger_Counter_BLE)
+  * [ 4. Async_Geiger_Counter_BT](examples/Async_Geiger_Counter_BT)
+  * [ 5. Async_Geiger_Counter_OLED](examples/Async_Geiger_Counter_OLED)
+  * [ 6. Async_Geiger_Counter_OLED_BT_WF](examples/Async_Geiger_Counter_OLED_BT_WF)
+  * [ 7. Async_Geiger_Counter_OLED_BT_BLE_WF](examples/Async_Geiger_Counter_OLED_BT_BLE_WF)
+  * [ 8. Async_PET_Check](examples/Async_PET_Check)
+* [So, how it works?](#so-how-it-works)
+* [Example Async_ESP32_BLE_WF](#example-async_esp32_ble_wf)
+  * [1. File Async_ESP32_BLE_WF.ino](#1-file-async_esp32_ble_wfino)
+  * [2. File defines.h](#2-file-definesh) 
+  * [3. File Credentials.h](#3-file-credentialsh) 
+  * [4. File dynamicParams.h](#4-file-dynamicparamsh) 
+* [Debug Terminal Output Samples](#debug-terminal-output-samples)
+  * [1. Async_ESP32_BLE_WF on ESP32_DEV](#1-async_esp32_ble_wf-on-esp32_dev)
+    * [1.1. No Config Data => Config Portal. Input valid credentials => reboot](#11-no-config-data--config-portal-input-valid-credentials--reboot)
+    * [1.2. DRD => Config Portal. Input valid credentials => reboot](#12-drd--config-portal-input-valid-credentials--reboot) 
+    * [1.3. After inputting valid credentials and reboot](#13-after-inputting-valid-credentials-and-reboot) 
+* [Debug](#debug)
+* [Troubleshooting](#troubleshooting)
+* [Releases](#releases)
+* [Issues](#issues)
+* [TO DO](#to-do)
+* [DONE](#done)
+* [Contributions and Thanks](#contributions-and-thanks)
+* [Contributing](#contributing)
+* [License](#license)
+* [Copyright](#copyright)
+
+---
+---
+
 ### Why do we need the new Async [Blynk_Async_ESP32_BT_WF library](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF)
+
+#### Features
+
+By design, Blynk user can run ESP32 boards with **either WiFi or BT/BLE** by using different sketches, and have to upload / update firmware to change. This library enables user to include both Blynk BT / BLE and WiFi libraries in one sketch, **run both WiFi and BT/BLE simultaneously, or select one to use at runtime after reboot.** 
+
+This library also supports (auto)connection to **MultiWiFi and MultiBlynk, dynamic custom as well as static parameters in Config Portal**. Eliminate hardcoding your Wifi and Blynk credentials and configuration data saved in either SPIFFS or EEPROM. 
+
+Optional default Credentials to be autoloaded into Config Portal to use or change instead of manually input. **Static STA IP and DHCP Hostname as well as Config Portal AP channel, IP, SSID, Password** can be configured. **DoubleDetectDetector** feature permits entering Config Portal as requested.
+
+You can eliminate `hardcoding` your Wifi and Blynk credentials, thanks to the `Smart Config Portal`, and have Credentials (WiFi SID/PW, Blynk WiFi/BT/BLE Tokens/ Hardware Port) saved in either SPIFFS or EEPROM.
+
+Thanks to this [**Blynk_Async_ESP32_BT_WF library**](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF) is based on and sync'ed with [`BlynkESP32_BT_WF library`](https://github.com/khoih-prog/BlynkESP32_BT_WF), all the features currently supported by [`BlynkESP32_BT_WF library`](https://github.com/khoih-prog/BlynkESP32_BT_WF) will be available. Please have a look at [`DONE`](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF#done) or [`DONE in BlynkESP32_BT_WF library`](https://github.com/khoih-prog/BlynkESP32_BT_WF#done) for those too-many-to-list features.
+
+#### Why Async is better
 
 - Using asynchronous network means that you can handle **more than one connection at the same time**
 - **You are called once the request is ready and parsed**
@@ -24,7 +100,23 @@
 - ServeStatic plugin that supports cache, Last-Modified, default index and more
 - Simple template processing engine to handle templates
 
+#### Currently supported Boards
+
+This [**BlynkESP32_BT_WF** library](https://github.com/khoih-prog/BlynkESP32_BT_WF) currently supports these following boards:
+
+ 1. **ESP32-based boards using EEPROM, SPIFFS or LittleFS**.
+ 
 ---
+---
+
+## Changelog
+
+### Major Releases v1.1.0
+
+1. Add support to LittleFS for ESP32 using [LITTLEFS](https://github.com/lorol/LITTLEFS) Library
+2. Clean-up all compiler warnings possible.
+3. Add Table of Contents
+4. Add Version String
 
 ### Releases v1.0.6
 
@@ -32,25 +124,14 @@
 2. Bump up to v1.0.6 to sync with [BlynkESP32_BT_WF library v1.0.6](https://github.com/khoih-prog/BlynkESP32_BT_WF).
 
 ---
-
-By design, Blynk user can run ESP32 boards with **either WiFi or BT/BLE** by using different sketches, and have to upload / update firmware to change. This library enables user to include both Blynk BT / BLE and WiFi libraries in one sketch, **run both WiFi and BT/BLE simultaneously, or select one to use at runtime after reboot.** 
-
-This library also supports (auto)connection to **MultiWiFi and MultiBlynk, dynamic custom as well as static parameters in Config Portal**. Eliminate hardcoding your Wifi and Blynk credentials and configuration data saved in either SPIFFS or EEPROM. 
-
-Optional default Credentials to be autoloaded into Config Portal to use or change instead of manually input. **Static STA IP and DHCP Hostname as well as Config Portal AP channel, IP, SSID, Password** can be configured. **DoubleDetectDetector** feature permits entering Config Portal as requested.
-
-You can eliminate `hardcoding` your Wifi and Blynk credentials, thanks to the `Smart Config Portal`, and have Credentials (WiFi SID/PW, Blynk WiFi/BT/BLE Tokens/ Hardware Port) saved in either SPIFFS or EEPROM.
-
-Thanks to this [**Blynk_Async_ESP32_BT_WF library**](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF) is based on and sync'ed with [`BlynkESP32_BT_WF library`](https://github.com/khoih-prog/BlynkESP32_BT_WF), all the features currently supported by [`BlynkESP32_BT_WF library`](https://github.com/khoih-prog/BlynkESP32_BT_WF) will be available. Please have a look at [`DONE`](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF#done) or [`DONE in BlynkESP32_BT_WF library`](https://github.com/khoih-prog/BlynkESP32_BT_WF#done) for those too-many-to-list features.
-
----
 ---
 
-## Prerequisite
+## Prerequisites
+
 1. [`Arduino IDE 1.8.13+` for Arduino](https://www.arduino.cc/en/Main/Software)
 2. [`Blynk library 0.6.1+`](https://github.com/blynkkk/blynk-library/releases)
 3. [`ESP32 core 1.0.4+`](https://github.com/espressif/arduino-esp32/releases) for ESP32 boards
-4. [`ESP_DoubleResetDetector library 1.0.3+`](https://github.com/khoih-prog/ESP_DoubleResetDetector) to use DRD feature. To install, check [![arduino-library-badge](https://www.ardu-badge.com/badge/ESP_DoubleResetDetector.svg?)](https://www.ardu-badge.com/ESP_DoubleResetDetector).
+4. [`ESP_DoubleResetDetector library 1.1.1+`](https://github.com/khoih-prog/ESP_DoubleResetDetector) to use DRD feature. To install, check [![arduino-library-badge](https://www.ardu-badge.com/badge/ESP_DoubleResetDetector.svg?)](https://www.ardu-badge.com/ESP_DoubleResetDetector).
 5. [`ESPAsyncWebServer v1.2.3+`](https://github.com/me-no-dev/ESPAsyncWebServer)
 6. [`AsyncTCP v1.1.1+`](https://github.com/me-no-dev/AsyncTCP)
  
@@ -69,10 +150,12 @@ The best and easiest way is to use `Arduino Library Manager`. Search for `Blynk_
 4. Copy the whole `Blynk_Async_ESP32_BT_WF-master` folder to Arduino libraries' directory such as `~/Arduino/libraries/`.
 
 ### VS Code & PlatformIO:
+
 1. Install [VS Code](https://code.visualstudio.com/)
 2. Install [PlatformIO](https://platformio.org/platformio-ide)
-3. Install **Blynk_Async_ESP32_BT_WF** library by using [Library Manager](https://docs.platformio.org/en/latest/librarymanager/). Search for **Blynk_Async_ESP32_BT_WF** in [Platform.io Author's Libraries](https://platformio.org/lib/search?query=author:%22Khoi%20Hoang%22)
+3. Install [**Blynk_Async_ESP32_BT_WF** library](https://platformio.org/lib/show/11093/Blynk_Async_ESP32_BT_WF) by using [Library Manager](https://platformio.org/lib/show/11093/Blynk_Async_ESP32_BT_WF/installation). Search for **Blynk_Async_ESP32_BT_WF** in [Platform.io Author's Libraries](https://platformio.org/lib/search?query=author:%22Khoi%20Hoang%22)
 4. Use included [platformio.ini](platformio/platformio.ini) file from examples to ensure that all dependent libraries will installed automatically. Please visit documentation for the other options and examples at [Project Configuration File](https://docs.platformio.org/page/projectconf.html)
+
 
 ---
 ---
@@ -367,9 +450,32 @@ void loop()
 ---
 ---
 
-That's it.
+### Important Notes for using Dynamic Parameters' ids
 
-Also see examples: 
+1. These ids (such as "mqtt" in example) must be ***unique***.
+
+Please be noted that the following ***reserved names are already used in library***:
+
+```
+"id"    for WiFi SSID
+"pw"    for WiFi PW
+"id1"   for WiFi1 SSID
+"pw1"   for WiFi1 PW
+"sv"    for Blynk Server
+"tk"    for Blynk Token
+"sv1"   for Blynk Server1
+"tk1"   for Blynk Token1
+"pt"    for Blynk Port
+"bttk"  for BT Blynk Token
+"bltk"  for BLE Blynk Token
+"nm"    for Board Name
+```
+
+---
+---
+
+### Examples
+
 1. [Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
 2. [Async_ESP32_BT_WF](examples/Async_ESP32_BT_WF)
 3. [Async_Geiger_Counter_BLE](examples/Async_Geiger_Counter_BLE)
@@ -471,7 +577,7 @@ void heartBeatPrint(void)
   {
     set_led(HIGH);
     led_ticker.once_ms(111, set_led, (byte) LOW);
-    Serial.print(F("B"));
+    Serial.print(F("B"));    
   }
   else
   {
@@ -497,7 +603,7 @@ void checkStatus()
 
   // Send status report every STATUS_REPORT_INTERVAL (60) seconds: we don't need to send updates frequently if there is no status change.
   if ((millis() > checkstatus_timeout) || (checkstatus_timeout == 0))
-  {
+  {     
     if (!USE_BLE)
     {
       // report Blynk connection
@@ -515,17 +621,25 @@ void setup()
   Serial.begin(115200);
   while (!Serial);
 
-#if ( USE_SPIFFS)
-  Serial.print(F("\nStarting ESP32_BLE_WF using SPIFFS"));
+#if (USE_LITTLEFS)
+  Serial.print(F("\nStarting Async_ESP32_BLE_WF using LITTLEFS"));
+#elif (USE_SPIFFS)
+  Serial.print(F("\nStarting Async_ESP32_BLE_WF using SPIFFS"));  
 #else
-  Serial.print(F("\nStarting ESP32_BLE_WF using EEPROM"));
+  Serial.print(F("\nStarting Async_ESP32_BLE_WF using EEPROM"));
 #endif
 
 #if USE_SSL
   Serial.println(" with SSL on " + String(ARDUINO_BOARD));
 #else
   Serial.println(" without SSL on " + String(ARDUINO_BOARD));
-#endif  
+#endif
+
+  Serial.println(BLYNK_ASYNC_ESP32_BT_WF_VERSION);
+  
+#if USE_BLYNK_WM  
+  Serial.println(ESP_DOUBLE_RESET_DETECTOR_VERSION);
+#endif
 
   pinMode(WIFI_BLE_SELECTION_PIN, INPUT_PULLUP);
 
@@ -674,25 +788,28 @@ void loop()
 #define defines_h
 
 #ifndef ESP32
-#error This code is intended to run on the ESP32 platform! Please check your Tools->Board setting.
+  #error This code is intended to run on the ESP32 platform! Please check your Tools->Board setting.
 #endif
 
-#define BLYNK_PRINT               Serial
+#define BLYNK_PRINT                   Serial
 
-#define ESP32_BLE_WF_DEBUG        true
+#define ESP32_BLE_WF_DEBUG            true
 
 #define DOUBLERESETDETECTOR_DEBUG     true
 #define BLYNK_WM_DEBUG                3
 
-// Not use #define USE_SPIFFS  => using EEPROM for configuration data in WiFiManager
-// #define USE_SPIFFS    false => using EEPROM for configuration data in WiFiManager
-// #define USE_SPIFFS    true  => using SPIFFS for configuration data in WiFiManager
-// Those above #define's must be placed before #include <BlynkSimpleEsp32_Async_WFM.h>
+// Not use #define USE_LITTLEFS and #define USE_SPIFFS  => using SPIFFS for configuration data in WiFiManager
+// (USE_LITTLEFS == false) and (USE_SPIFFS == false)    => using EEPROM for configuration data in WiFiManager
+// (USE_LITTLEFS == true) and (USE_SPIFFS == false)     => using LITTLEFS for configuration data in WiFiManager
+// (USE_LITTLEFS == true) and (USE_SPIFFS == true)      => using LITTLEFS for configuration data in WiFiManager
+// (USE_LITTLEFS == false) and (USE_SPIFFS == true)     => using SPIFFS for configuration data in WiFiManager
+// Those above #define's must be placed before #include <BlynkSimpleEsp32_WFM.h>
 
-#define USE_SPIFFS                  true
-//#define USE_SPIFFS                  false
+#define USE_LITTLEFS          true
+#define USE_SPIFFS            false
 
-#if (!USE_SPIFFS)
+
+#if !( USE_SPIFFS || USE_LITTLEFS)
   // EEPROM_SIZE must be <= 2048 and >= CONFIG_DATA_SIZE (currently 172 bytes)
   #define EEPROM_SIZE    (2 * 1024)
   // EEPROM_START + CONFIG_DATA_SIZE must be <= EEPROM_SIZE
@@ -703,7 +820,7 @@ void loop()
 #define TIMEOUT_RECONNECT_WIFI                    10000L
 #define RESET_IF_CONFIG_TIMEOUT                   true
 #define CONFIG_TIMEOUT_RETRYTIMES_BEFORE_RESET    5
-// Those above #define's must be placed before #include <BlynkSimpleEsp32_Async_WFM.h>
+// Those above #define's must be placed before #include <BlynkSimpleESP32_Async_WFM.h>
 
 //#define BLYNK_USE_BLE_ONLY      true
 #define BLYNK_USE_BLE_ONLY      false
@@ -718,7 +835,7 @@ void loop()
 #if !BLYNK_USE_BLE_ONLY
   #if USE_BLYNK_WM
     #warning Please select 1.3MB+ for APP (Minimal SPIFFS (1.9MB APP, OTA), HugeAPP(3MB APP, NoOTA) or NoOA(2MB APP)
-    #include <BlynkSimpleEsp32_Async_WFM.h>
+    #include <BlynkSimpleEsp32_Async_WFM.h>  
   #else
     #include <BlynkSimpleEsp32_Async_WF.h>
     
@@ -726,7 +843,7 @@ void loop()
     //String cloudBlynkServer = "192.168.2.110";
     #define BLYNK_SERVER_HARDWARE_PORT    8080
     char ssid[] = "SSID";
-    char pass[] = "PASS";
+    char pass[] = "PASSPASS";
   #endif
 #endif
 
@@ -909,37 +1026,19 @@ void loop()
 ---
 ---
 
-### Important Notes for using Dynamic Parameters' ids
 
-1. These ids (such as "mqtt" in example) must be ***unique***.
+### Debug Terminal Output Samples
 
-Please be noted that the following ***reserved names are already used in library***:
-
-```
-"id"    for WiFi SSID
-"pw"    for WiFi PW
-"id1"   for WiFi1 SSID
-"pw1"   for WiFi1 PW
-"sv"    for Blynk Server
-"tk"    for Blynk Token
-"sv1"   for Blynk Server1
-"tk1"   for Blynk Token1
-"pt"    for Blynk Port
-"bttk"  for BT Blynk Token
-"bltk"  for BLE Blynk Token
-"nm"    for Board Name
-```
-
----
-
-### Debug Termimal Output Samples
+#### 1. Async_ESP32_BLE_WF on ESP32_DEV
 
 The following is the sample terminal output when running example [Async_ESP32_BLE_WF](examples/Async_ESP32_BLE_WF)
 
-#### 1. No Config Data => Config Portal. Input valid credentials => reboot
+#### 1.1. No Config Data => Config Portal. Input valid credentials => reboot
 
 ```
 Starting Async_ESP32_BLE_WF using SPIFFS without SSL on ESP32_DEV
+Blynk_Async_ESP32_BT_WF v1.1.0
+ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
 SPIFFS Flag read = 0xd0d04321
@@ -992,10 +1091,12 @@ FF[9799112] id: = HueNet1
 ```
 ---
 
-#### 2. DRD => Config Portal. Input valid credentials => reboot
+#### 1.2. DRD => Config Portal. Input valid credentials => reboot
 
 ```
 Starting Async_ESP32_BLE_WF using SPIFFS without SSL on ESP32_DEV
+Blynk_Async_ESP32_BT_WF v1.1.0
+ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
 SPIFFS Flag read = 0xd0d01234
@@ -1068,10 +1169,12 @@ FFFFF
 [194908] h:Rst
 ```
 
-#### 3. After inputting valid credentials and reboot
+#### 1.3. After inputting valid credentials and reboot
 
 ```
 Starting Async_ESP32_BLE_WF using SPIFFS without SSL on ESP32_DEV
+Blynk_Async_ESP32_BT_WF v1.1.0
+ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
 SPIFFS Flag read = 0xd0d04321
@@ -1143,10 +1246,55 @@ BBBB
 ---
 ---
 
+### Debug
+
+Debug is enabled by default on Serial.
+
+You can also change the debugging level from 0 to 4
+
+```cpp
+#define BLYNK_PRINT                   Serial
+
+#define ESP32_BLE_WF_DEBUG            true
+
+#define DOUBLERESETDETECTOR_DEBUG     true
+#define BLYNK_WM_DEBUG                3
+```
+
+---
+
+### Troubleshooting
+
+If you get compilation errors, more often than not, you may need to install a newer version of the core for Arduino boards.
+
+Sometimes, the library will only work if you update the board core to the latest version because I am using newly added functions.
+
+---
+---
+
+## Releases
+
+### Major Releases v1.1.0
+
+1. Add support to LittleFS for ESP32 using [LITTLEFS](https://github.com/lorol/LITTLEFS) Library
+2. Clean-up all compiler warnings possible.
+3. Add Table of Contents
+4. Add Version String
+
+### Releases v1.0.6
+
+1. Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
+2. Bump up to v1.0.6 to sync with [BlynkESP32_BT_WF library v1.0.6](https://github.com/khoih-prog/BlynkESP32_BT_WF).
+
+---
+---
+
 ## TO DO
 
 1. Same features for other boards with WiFi / BT
 2. Optimize library so that smaller code size. Currently 2 instances of Blynk coexist and don't share code.
+
+---
 
 ## DONE
 
@@ -1174,14 +1322,9 @@ BBBB
  22. Configurable Config Portal Title
  23. Re-structure all examples to separate Credentials / Defines / Dynamic Params / Code so that you can change Credentials / Dynamic Params quickly for each device.
  24. Using [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer) instead of (ESP8266)WebServer.
-
----
----
-
-### Releases v1.0.6
-
-1. Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-2. Bump up to v1.0.6 to sync with [BlynkESP32_BT_WF library v1.0.6](https://github.com/khoih-prog/BlynkESP32_BT_WF).
+ 25. Add support to LittleFS for ESP32 using [LITTLEFS](https://github.com/lorol/LITTLEFS) Library
+ 26. Add Table of Contents and Version String
+ 27. Clean-up all compiler warnings possible.
 
 
 ---
@@ -1215,10 +1358,13 @@ If you want to contribute to this project:
 
 ### License
 
-- The library is licensed under [MIT](https://github.com/khoih-prog/WebSockets2_Generic/blob/master/LICENSE)
+- The library is licensed under [MIT](https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF/blob/master/LICENSE)
 
 ---
 
 ### Copyright
 
 Copyright 2020- Khoi Hoang
+
+
+

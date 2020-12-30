@@ -17,20 +17,23 @@
    @date       Oct 2016
    @brief
    
-   Version: 1.0.6
+   Version: 1.1.0
 
    Version Modified By   Date      Comments
    ------- -----------  ---------- -----------
     1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
                                     Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
+    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
  *****************************************************************************************************************************/
 
 #ifndef BlynkSimpleEsp32_BT_WF_h
 #define BlynkSimpleEsp32_BT_WF_h
 
 #ifndef ESP32
-#error This code is intended to run on the ESP32 platform! Please check your Tools->Board setting.
+  #error This code is intended to run on the ESP32 platform! Please check your Tools->Board setting.
 #endif
+
+#define BLYNK_ASYNC_ESP32_BT_WF_VERSION       "Blynk_Async_ESP32_BT_WF v1.1.0"
 
 #ifndef BLYNK_INFO_CONNECTION
 #define BLYNK_INFO_CONNECTION "ESP32_BT"
