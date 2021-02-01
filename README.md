@@ -1311,7 +1311,7 @@ ets Jun  8 2016 00:22:57
 
 
 Starting Async_ESP32_BLE_WF using LITTLEFS without SSL on ESP32_DEV
-Blynk_Async_ESP32_BT_WF v1.1.0
+Blynk_Async_ESP32_BT_WF v1.1.1
 ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
@@ -1393,7 +1393,7 @@ ets Jun  8 2016 00:22:57
 
 
 Starting Async_ESP32_BLE_WF using LITTLEFS without SSL on ESP32_DEV
-Blynk_Async_ESP32_BT_WF v1.1.0
+Blynk_Async_ESP32_BT_WF v1.1.1
 ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
