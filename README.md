@@ -16,6 +16,7 @@
   * [Why Async is better](#why-async-is-better)
   * [Currently supported Boards](#currently-supported-boards)
 * [Changelog](#changelog)
+  * [Releases v1.1.1](#releases-v111)
   * [Major Releases v1.1.0](#major-releases-v110)
   * [Releases v1.0.6](#releases-v106)
 * [Prerequisites](#prerequisites)
@@ -56,7 +57,9 @@
   * [1. Async_ESP32_BLE_WF on ESP32_DEV](#1-async_esp32_ble_wf-on-esp32_dev)
     * [1.1. No Config Data => Config Portal. Input valid credentials => reboot](#11-no-config-data--config-portal-input-valid-credentials--reboot)
     * [1.2. DRD => Config Portal. Input valid credentials => reboot](#12-drd--config-portal-input-valid-credentials--reboot) 
-    * [1.3. After inputting valid credentials and reboot](#13-after-inputting-valid-credentials-and-reboot) 
+    * [1.3. After inputting valid credentials and reboot](#13-after-inputting-valid-credentials-and-reboot)
+    * [1.4. Enter non-persistent ConfigPortal](#14-enter-non-persistent-configportal)
+    * [1.5. Enter persistent ConfigPortal](#15-enter-persistent-configportal)
 * [Debug](#debug)
 * [Troubleshooting](#troubleshooting)
 * [Releases](#releases)
@@ -110,6 +113,12 @@ This [**BlynkESP32_BT_WF** library](https://github.com/khoih-prog/BlynkESP32_BT_
 ---
 
 ## Changelog
+
+### Releases v1.1.1
+
+1. Add functions to control Config Portal from software or Virtual Switches. Check [How to trigger a Config Portal from code #25](https://github.com/khoih-prog/Blynk_WM/issues/25)
+2. Fix rare Config Portal bug not updating Config and dynamic Params data successfully in very noisy or weak WiFi situation
+3. To permit autoreset after configurable timeout if DRD/MRD or non-persistent forced-CP. Check [**Good new feature: Blynk.resetAndEnterConfigPortal() Thanks & question #27**](https://github.com/khoih-prog/Blynk_WM/issues/27)
 
 ### Major Releases v1.1.0
 
@@ -557,6 +566,36 @@ BlynkTimer timer;
 #include <Ticker.h>
 Ticker     led_ticker;
 
+#if USE_BLYNK_WM
+
+#define BLYNK_PIN_FORCED_CONFIG           V10
+#define BLYNK_PIN_FORCED_PERS_CONFIG      V20
+
+// Use button V10 (BLYNK_PIN_FORCED_CONFIG) to forced Config Portal
+BLYNK_WRITE(BLYNK_PIN_FORCED_CONFIG)
+{ 
+  if (param.asInt())
+  {
+    Serial.println( F("\nCP Button Hit. Rebooting") ); 
+
+    // This will keep CP once, clear after reset, even you didn't enter CP at all.
+    Blynk.resetAndEnterConfigPortal(); 
+  }
+}
+
+// Use button V20 (BLYNK_PIN_FORCED_PERS_CONFIG) to forced Persistent Config Portal
+BLYNK_WRITE(BLYNK_PIN_FORCED_PERS_CONFIG)
+{ 
+  if (param.asInt())
+  {
+    Serial.println( F("\nPersistent CP Button Hit. Rebooting") ); 
+   
+    // This will keep CP forever, until you successfully enter CP, and Save data to clear the flag.
+    Blynk.resetAndEnterConfigPortalPersistent();
+  }
+}
+#endif
+
 void set_led(byte status)
 {
   digitalWrite(LED_BUILTIN, status);
@@ -622,6 +661,8 @@ void setup()
   Serial.begin(115200);
   while (!Serial);
 
+  delay(200);
+
 #if (USE_LITTLEFS)
   Serial.print(F("\nStarting Async_ESP32_BLE_WF using LITTLEFS"));
 #elif (USE_SPIFFS)
@@ -631,11 +672,12 @@ void setup()
 #endif
 
 #if USE_SSL
-  Serial.println(" with SSL on " + String(ARDUINO_BOARD));
+  Serial.print(F(" with SSL on "));
 #else
-  Serial.println(" without SSL on " + String(ARDUINO_BOARD));
+  Serial.print(F(" without SSL on "));
 #endif
 
+  Serial.println(ARDUINO_BOARD);
   Serial.println(BLYNK_ASYNC_ESP32_BT_WF_VERSION);
   
 #if USE_BLYNK_WM  
@@ -734,13 +776,15 @@ void setup()
 }
 
 #if (USE_BLYNK_WM && USE_DYNAMIC_PARAMETERS)
-void displayCredentials(void)
+void displayCredentials()
 {
   Serial.println(F("\nYour stored Credentials :"));
 
-  for (int i = 0; i < NUM_MENU_ITEMS; i++)
+  for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
   {
-    Serial.println(String(myMenuItems[i].displayName) + " = " + myMenuItems[i].pdata);
+    Serial.print(myMenuItems[i].displayName);
+    Serial.print(F(" = "));
+    Serial.println(myMenuItems[i].pdata);
   }
 }
 #endif
@@ -764,7 +808,7 @@ void loop()
 
   if (!displayedCredentials)
   {
-    for (int i = 0; i < NUM_MENU_ITEMS; i++)
+    for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
     {
       if (!strlen(myMenuItems[i].pdata))
       {
@@ -835,6 +879,8 @@ void loop()
 
 #if !BLYNK_USE_BLE_ONLY
   #if USE_BLYNK_WM
+    #define USE_DYNAMIC_PARAMETERS                    true
+    
     #warning Please select 1.3MB+ for APP (Minimal SPIFFS (1.9MB APP, OTA), HugeAPP(3MB APP, NoOTA) or NoOA(2MB APP)
     #include <BlynkSimpleEsp32_Async_WFM.h>  
   #else
@@ -875,7 +921,7 @@ void loop()
   /// Start Default Config Data //////////////////
   
   /*
-    // Defined in <BlynkSimpleEsp32_Async_WFM.h>
+    // Defined in <BlynkSimpleESP32_Async_WFM.h>
   
     #define SSID_MAX_LEN      32
     #define PASS_MAX_LEN      64
@@ -916,7 +962,7 @@ void loop()
   Blynk_WM_Configuration defaultConfig =
   {
     //char header[16], dummy, not used
-  #if USE_SSL
+  #if USE_SSL  
     "SSL",
   #else
     "NonSSL",
@@ -958,11 +1004,15 @@ void loop()
 
 #if USE_BLYNK_WM
 
-  #define USE_DYNAMIC_PARAMETERS      true
+#if (USE_DYNAMIC_PARAMETERS)
+  #warning USE_DYNAMIC_PARAMETERS
+#endif
+
+// USE_DYNAMIC_PARAMETERS defined in defined.h
   
   /////////////// Start dynamic Credentials ///////////////
   
-  //Defined in <BlynkSimpleEsp32_Async_WFM.h>
+  //Defined in <BlynkSimpleESP32_Async_WFM.h>
   /**************************************
     #define MAX_ID_LEN                5
     #define MAX_DISPLAY_NAME_LEN      16
@@ -1038,7 +1088,7 @@ The following is the sample terminal output when running example [Async_ESP32_BL
 
 ```
 Starting Async_ESP32_BLE_WF using SPIFFS without SSL on ESP32_DEV
-Blynk_Async_ESP32_BT_WF v1.1.0
+Blynk_Async_ESP32_BT_WF v1.1.1
 ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
@@ -1096,7 +1146,7 @@ FF[9799112] id: = HueNet1
 
 ```
 Starting Async_ESP32_BLE_WF using SPIFFS without SSL on ESP32_DEV
-Blynk_Async_ESP32_BT_WF v1.1.0
+Blynk_Async_ESP32_BT_WF v1.1.1
 ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
@@ -1174,7 +1224,7 @@ FFFFF
 
 ```
 Starting Async_ESP32_BLE_WF using SPIFFS without SSL on ESP32_DEV
-Blynk_Async_ESP32_BT_WF v1.1.0
+Blynk_Async_ESP32_BT_WF v1.1.1
 ESP_DoubleResetDetector v1.1.1
 GPIO14 HIGH, Use WiFi
 USE_BLYNK_WM: Blynk_WF begin
@@ -1242,8 +1292,167 @@ Stop doubleResetDetecting
 Saving config file...
 Saving config file OK
 BBBB
+```
+
+---
+
+#### 1.4 Enter non-persistent ConfigPortal
+
+**Non-Persistent CP will be removed after first reset or time-out, even you didn't enter the CP**. You can optionally enter CP, input and `Save` config data.
 
 ```
+CP Button Hit. Rebooting
+[13025] setForcedCP non-Persistent
+[13039] SaveCPFile 
+[13044] OK
+[13058] SaveBkUpCPFile 
+[13063] OK
+ets Jun  8 2016 00:22:57
+
+
+Starting Async_ESP32_BLE_WF using LITTLEFS without SSL on ESP32_DEV
+Blynk_Async_ESP32_BT_WF v1.1.0
+ESP_DoubleResetDetector v1.1.1
+GPIO14 HIGH, Use WiFi
+USE_BLYNK_WM: Blynk_WF begin
+LittleFS Flag read = 0xD0D04321
+No doubleResetDetected
+Saving config file...
+Saving config file OK
+[481] Hostname=GeigerCounter-BLE
+[501] LoadCfgFile 
+[504] OK
+[505] ======= Start Stored Config Data =======
+[505] Hdr=ESP32_WFM,BrdName=ESP32_BT_BLE
+[505] SSID=HueNet1,PW=12345678
+[506] SSID1=HueNet2,PW1=12345678
+[509] Server=account.duckdns.org,Token=token
+[515] Server1=account.duckdns.org,Token1=token1
+[521] BT-Token=bt_token,BLE-Token=ble_token
+[529] Port=8080
+[531] ======= End Config Data =======
+[534] CCSum=0x4b86,RCSum=0x4b86
+[545] LoadCredFile 
+[548] CrR:pdata=new-mqtt-server,len=34
+[548] CrR:pdata=1883,len=6
+[548] CrR:pdata=default-mqtt-username,len=34
+[549] CrR:pdata=default-mqtt-password,len=34
+[553] CrR:pdata=default-mqtt-SubTopic,len=34
+[557] CrR:pdata=default-mqtt-PubTopic,len=34
+[561] OK
+[562] CrCCsum=0x280b,CrRCsum=0x280b
+[565] Valid Stored Dynamic Data
+[568] Hdr=ESP32_WFM,BrdName=ESP32_BT_BLE
+[571] SSID=HueNet1,PW=12345678
+[574] SSID1=HueNet2,PW1=12345678
+[577] Server=account.duckdns.org,Token=token
+[583] Server1=account.duckdns.org,Token1=token1
+[589] BT-Token=bt_token,BLE-Token=ble_token
+[597] Port=8080
+[599] ======= End Config Data =======
+[602] Check if isForcedCP
+[612] LoadCPFile 
+[615] OK
+[615] bg: isForcedConfigPortal = true
+[615] bg:Stay forever in CP:Forced-non-Persistent
+[615] clearForcedCP
+[624] SaveCPFile 
+[628] OK
+[636] SaveBkUpCPFile 
+[640] OK
+[1485] stConf:SSID=TestPortal-ESP32,PW=TestPortalPass
+[1485] IP=192.168.232.1,ch=7
+F
+Your stored Credentials :
+MQTT Server = new-mqtt-server
+Port = 1883
+MQTT UserName = default-mqtt-username
+MQTT PWD = default-mqtt-password
+Subs Topics = default-mqtt-SubTopic
+Pubs Topics = default-mqtt-PubTopic
+Stop doubleResetDetecting
+Saving config file...
+Saving config file OK
+F
+```
+
+---
+
+#### 1.5 Enter persistent ConfigPortal
+
+**Persistent CP will remain even after resets or time-out**. The only way to get rid of Config Portal is to enter CP, input (even fake data or none) and `Save` config data. So be careful to use this feature.
+
+```
+Persistent CP Button Hit. Rebooting
+[218377] setForcedCP Persistent
+[218390] SaveCPFile 
+[218394] OK
+[218408] SaveBkUpCPFile 
+[218413] OK
+ets Jun  8 2016 00:22:57
+
+
+Starting Async_ESP32_BLE_WF using LITTLEFS without SSL on ESP32_DEV
+Blynk_Async_ESP32_BT_WF v1.1.0
+ESP_DoubleResetDetector v1.1.1
+GPIO14 HIGH, Use WiFi
+USE_BLYNK_WM: Blynk_WF begin
+LittleFS Flag read = 0xD0D04321
+No doubleResetDetected
+Saving config file...
+Saving config file OK
+[363] Hostname=GeigerCounter-BLE
+[409] LoadCfgFile 
+[416] OK
+[416] ======= Start Stored Config Data =======
+[416] Hdr=ESP32_WFM,BrdName=ESP32_BT_BLE
+[416] SSID=HueNet1,PW=12345678
+[416] SSID1=HueNet2,PW1=12345678
+[419] Server=account.duckdns.org,Token=token
+[425] Server1=account.duckdns.org,Token1=token1
+[432] BT-Token=bt_token,BLE-Token=ble_token
+[440] Port=8080
+[441] ======= End Config Data =======
+[444] CCSum=0x4b86,RCSum=0x4b86
+[467] LoadCredFile 
+[473] CrR:pdata=new-mqtt-server,len=34
+[473] CrR:pdata=1883,len=6
+[473] CrR:pdata=default-mqtt-username,len=34
+[473] CrR:pdata=default-mqtt-password,len=34
+[476] CrR:pdata=default-mqtt-SubTopic,len=34
+[480] CrR:pdata=default-mqtt-PubTopic,len=34
+[484] OK
+[485] CrCCsum=0x280b,CrRCsum=0x280b
+[488] Valid Stored Dynamic Data
+[491] Hdr=ESP32_WFM,BrdName=ESP32_BT_BLE
+[494] SSID=HueNet1,PW=12345678
+[497] SSID1=HueNet2,PW1=12345678
+[500] Server=account.duckdns.org,Token=token
+[506] Server1=account.duckdns.org,Token1=token1
+[513] BT-Token=bt_token,BLE-Token=ble_token
+[521] Port=8080
+[522] ======= End Config Data =======
+[526] Check if isForcedCP
+[541] LoadCPFile 
+[546] OK
+[546] bg: isForcedConfigPortal = true
+[546] bg:Stay forever in CP:Forced-Persistent
+[1391] stConf:SSID=TestPortal-ESP32,PW=TestPortalPass
+[1391] IP=192.168.232.1,ch=1
+F
+Your stored Credentials :
+MQTT Server = new-mqtt-server
+Port = 1883
+MQTT UserName = default-mqtt-username
+MQTT PWD = default-mqtt-password
+Subs Topics = default-mqtt-SubTopic
+Pubs Topics = default-mqtt-PubTopic
+Stop doubleResetDetecting
+Saving config file...
+Saving config file OK
+FFFF
+```
+
 ---
 ---
 
@@ -1274,6 +1483,12 @@ Sometimes, the library will only work if you update the board core to the latest
 ---
 
 ## Releases
+
+### Releases v1.1.1
+
+1. Add functions to control Config Portal from software or Virtual Switches. Check [How to trigger a Config Portal from code #25](https://github.com/khoih-prog/Blynk_WM/issues/25)
+2. Fix rare Config Portal bug not updating Config and dynamic Params data successfully in very noisy or weak WiFi situation
+3. To permit autoreset after configurable timeout if DRD/MRD or non-persistent forced-CP. Check [**Good new feature: Blynk.resetAndEnterConfigPortal() Thanks & question #27**](https://github.com/khoih-prog/Blynk_WM/issues/27)
 
 ### Major Releases v1.1.0
 

@@ -1,21 +1,13 @@
 /****************************************************************************************************************************
-   defines.h
-   For ESP32 using WiFi along with BlueTooth BLE
-
-   Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
-   Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
-   
-   Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
-   Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
-   Licensed under MIT license
-   
-   Version: 1.1.0
-
-   Version Modified By   Date      Comments
-   ------- -----------  ---------- -----------
-    1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
-    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  defines.h
+  For ESP32 using WiFi along with BlueTooth BLE
+  
+  Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
+  Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
+  
+  Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
+  Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
+  Licensed under MIT license
  *****************************************************************************************************************************/
 
 #ifndef defines_h
@@ -66,6 +58,8 @@
 
 #if !BLYNK_USE_BT_ONLY
   #if USE_BLYNK_WM
+    #define USE_DYNAMIC_PARAMETERS                    true
+    
     #warning Please select 1.3MB+ for APP (Minimal SPIFFS (1.9MB APP, OTA), HugeAPP(3MB APP, NoOTA) or NoOA(2MB APP)
     #include <BlynkSimpleEsp32_Async_WFM.h>  
   #else

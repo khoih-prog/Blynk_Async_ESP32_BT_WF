@@ -1,30 +1,34 @@
 /****************************************************************************************************************************
-   BlynkSimpleEsp32_Async_BT_WF.h
-   For ESP32 using BlueTooth along with WiFi
+  BlynkSimpleEsp32_Async_BT_WF.h
+  For ESP32 using WiFiManager and WiFi along with BlueTooth / BLE
 
-   Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
-   Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
-   
-   Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
-   Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
-   Licensed under MIT license
+  Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
+  Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
 
-   Original Blynk Library author:
-   @file       BlynkSimpleESP32.h
-   @author     Volodymyr Shymanskyy
-   @license    This project is released under the MIT License (MIT)
-   @copyright  Copyright (c) 2015 Volodymyr Shymanskyy
-   @date       Oct 2016
-   @brief
-   
-   Version: 1.1.0
+  Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
+  Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
+  Licensed under MIT license
 
-   Version Modified By   Date      Comments
-   ------- -----------  ---------- -----------
-    1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
-    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  Original Blynk Library author:
+  @file       BlynkSimpleESP32.h
+  @author     Volodymyr Shymanskyy
+  @license    This project is released under the MIT License (MIT)
+  @copyright  Copyright (c) 2015 Volodymyr Shymanskyy
+  @date       Oct 2016
+  @brief
+
+  Version: 1.1.1
+
+  Version Modified By   Date      Comments
+  ------- -----------  ---------- -----------
+  1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
+                                  Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
+  1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  1.1.1   K Hoang      31/01/2021 Add functions to control Config Portal (CP) from software or Virtual Switches
+                                  Fix CP and Dynamic Params bugs. To permit autoreset after timeout if DRD/MRD or forced CP 
  *****************************************************************************************************************************/
+
+#pragma once
 
 #ifndef BlynkSimpleEsp32_BT_WF_h
 #define BlynkSimpleEsp32_BT_WF_h
@@ -33,7 +37,7 @@
   #error This code is intended to run on the ESP32 platform! Please check your Tools->Board setting.
 #endif
 
-#define BLYNK_ASYNC_ESP32_BT_WF_VERSION       "Blynk_Async_ESP32_BT_WF v1.1.0"
+#define BLYNK_ASYNC_ESP32_BT_WF_VERSION       "Blynk_Async_ESP32_BT_WF v1.1.1"
 
 #ifndef BLYNK_INFO_CONNECTION
 #define BLYNK_INFO_CONNECTION "ESP32_BT"

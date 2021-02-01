@@ -1,30 +1,34 @@
 /****************************************************************************************************************************
-   BlynkSimpleESP32_Async_WFM.h
-   For ESP32 using WiFiManager and WiFi along with BlueTooth / BLE
+  BlynkSimpleESP32_Async_WFM.h
+  For ESP32 using WiFiManager and WiFi along with BlueTooth / BLE
 
-   Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
-   Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
-   
-   Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
-   Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
-   Licensed under MIT license
+  Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
+  Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
 
-   Original Blynk Library author:
-   @file       BlynkSimpleESP32.h
-   @author     Volodymyr Shymanskyy
-   @license    This project is released under the MIT License (MIT)
-   @copyright  Copyright (c) 2015 Volodymyr Shymanskyy
-   @date       Oct 2016
-   @brief
-   
-   Version: 1.1.0
+  Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
+  Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
+  Licensed under MIT license
 
-   Version Modified By   Date      Comments
-   ------- -----------  ---------- -----------
-    1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
-    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  Original Blynk Library author:
+  @file       BlynkSimpleESP32.h
+  @author     Volodymyr Shymanskyy
+  @license    This project is released under the MIT License (MIT)
+  @copyright  Copyright (c) 2015 Volodymyr Shymanskyy
+  @date       Oct 2016
+  @brief
+
+  Version: 1.1.1
+
+  Version Modified By   Date      Comments
+  ------- -----------  ---------- -----------
+  1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
+                                  Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
+  1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  1.1.1   K Hoang      31/01/2021 Add functions to control Config Portal (CP) from software or Virtual Switches
+                                  Fix CP and Dynamic Params bugs. To permit autoreset after timeout if DRD/MRD or forced CP 
  *****************************************************************************************************************************/
+
+#pragma once
 
 #ifndef BlynkSimpleEsp32_WFM_h
 #define BlynkSimpleEsp32_WFM_h
@@ -135,11 +139,14 @@ typedef struct
 } MenuItem;
 //
 
-extern uint16_t NUM_MENU_ITEMS;
-extern MenuItem myMenuItems [];
+#if USE_DYNAMIC_PARAMETERS
+  extern uint16_t NUM_MENU_ITEMS;
+  extern MenuItem myMenuItems [];
+  bool *menuItemUpdated = NULL;
+#endif
 
 #define SSID_MAX_LEN      32
-// WPA2 passwords can be up to 63 characters long.
+//From v1.0.5, WPA2 passwords can be up to 63 characters long.
 #define PASS_MAX_LEN      64
 
 typedef struct
@@ -148,8 +155,12 @@ typedef struct
   char wifi_pw  [PASS_MAX_LEN];
 }  WiFi_Credentials;
 
+#define HEADER_MAX_LEN      16
+
 #define BLYNK_SERVER_MAX_LEN      32
 #define BLYNK_TOKEN_MAX_LEN       36
+
+#define BOARD_NAME_MAX_LEN        24
 
 typedef struct
 {
@@ -164,13 +175,13 @@ typedef struct
 #define NUM_CONFIGURABLE_ITEMS    ( 4 + (2 * NUM_WIFI_CREDENTIALS) + (2 * NUM_BLYNK_CREDENTIALS) )
 typedef struct Configuration
 {
-  char header         [16];
+  char header         [HEADER_MAX_LEN];
   WiFi_Credentials  WiFi_Creds  [NUM_WIFI_CREDENTIALS];
   Blynk_Credentials Blynk_Creds [NUM_BLYNK_CREDENTIALS];
   int  blynk_port;
-  char blynk_bt_tk    [36];
-  char blynk_ble_tk   [36];  
-  char board_name     [24];
+  char blynk_bt_tk    [BLYNK_TOKEN_MAX_LEN];
+  char blynk_ble_tk   [BLYNK_TOKEN_MAX_LEN];  
+  char board_name     [BOARD_NAME_MAX_LEN];
   int  checkSum;
 } Blynk_WM_Configuration;
 // Currently CONFIG_DATA_SIZE  =  ( 120 + (96 * NUM_WIFI_CREDENTIALS) + (68 * NUM_BLYNK_CREDENTIALS) ) = 448
@@ -355,11 +366,15 @@ class BlynkWifi
       }
 
       BLYNK_LOG2(BLYNK_F("Hostname="), RFC952_hostname);
-
-      //// New DRD ////
-      //  noConfigPortal when getConfigData() OK and no DRD'ed
-      if (getConfigData() && noConfigPortal)
-      //// New DRD ////
+      
+      hadConfigData = getConfigData();
+      
+      isForcedConfigPortal = isForcedCP();
+      
+      //// New DRD/MRD ////
+      //  noConfigPortal when getConfigData() OK and no MRD/DRD'ed
+      //if (getConfigData() && noConfigPortal)
+      if (hadConfigData && noConfigPortal && (!isForcedConfigPortal) )
       {
         hadConfigData = true;
 
@@ -404,11 +419,25 @@ class BlynkWifi
       }
       else
       { 
-        BLYNK_LOG2(BLYNK_F("bg: Stay forever in config portal."), 
-                   noConfigPortal ? BLYNK_F("No configDat") : BLYNK_F("DRD detected"));
+#if ( BLYNK_WM_DEBUG > 2)        
+        BLYNK_LOG1(isForcedConfigPortal? BLYNK_F("bg: isForcedConfigPortal = true") : BLYNK_F("bg: isForcedConfigPortal = false"));
+#endif
+                                
+        // If not persistent => clear the flag so that after reset. no more CP, even CP not entered and saved
+        if (persForcedConfigPortal)
+        {
+          BLYNK_LOG2(BLYNK_F("bg:Stay forever in CP:"), isForcedConfigPortal ? BLYNK_F("Forced-Persistent") : (noConfigPortal ? BLYNK_F("No ConfigDat") : BLYNK_F("DRD/MRD")));
+        }
+        else
+        {
+          BLYNK_LOG2(BLYNK_F("bg:Stay forever in CP:"), isForcedConfigPortal ? BLYNK_F("Forced-non-Persistent") : (noConfigPortal ? BLYNK_F("No ConfigDat") : BLYNK_F("DRD/MRD")));
+          clearForcedCP();
+        }
           
+        
+        hadConfigData = isForcedConfigPortal ? true : (noConfigPortal ? false : true);
+        
         // failed to connect to Blynk server, will start configuration mode
-        hadConfigData = false;
         startConfigurationMode();
       }
     }
@@ -556,7 +585,7 @@ class BlynkWifi
     }
 
 #define MIN_WIFI_CHANNEL      1
-#define MAX_WIFI_CHANNEL      12
+#define MAX_WIFI_CHANNEL      11
 
     int setConfigPortalChannel(int channel = 1)
     {
@@ -686,6 +715,42 @@ class BlynkWifi
       memset(&BlynkESP32_WM_config, 0, sizeof(BlynkESP32_WM_config));
       saveConfigData();
     }
+    
+    // Forced CP => Flag = 0xBEEFBEEF. Else => No forced CP
+    // Flag to be stored at (EEPROM_START + DRD_FLAG_DATA_SIZE + CONFIG_DATA_SIZE) 
+    // to avoid corruption to current data
+    //#define FORCED_CONFIG_PORTAL_FLAG_DATA              ( (uint32_t) 0xDEADBEEF)
+    //#define FORCED_PERS_CONFIG_PORTAL_FLAG_DATA         ( (uint32_t) 0xBEEFDEAD)
+    
+    const uint32_t FORCED_CONFIG_PORTAL_FLAG_DATA       = 0xDEADBEEF;
+    const uint32_t FORCED_PERS_CONFIG_PORTAL_FLAG_DATA  = 0xBEEFDEAD;
+    
+    #define FORCED_CONFIG_PORTAL_FLAG_DATA_SIZE     4
+    
+    void resetAndEnterConfigPortal()
+    {
+      persForcedConfigPortal = false;
+      
+      setForcedCP(false);
+      
+      // Delay then reset the ESP32 after save data
+      delay(1000);
+      ESP.restart();
+    }
+    
+    // This will keep CP forever, until you successfully enter CP, and Save data to clear the flag.
+    void resetAndEnterConfigPortalPersistent()
+    {
+      persForcedConfigPortal = true;
+      
+      setForcedCP(true);
+      
+      // Delay then reset the ESP32 after save data
+      delay(1000);
+      ESP.restart();
+    }
+    
+  //////////////////////////////////////////////
 
   private:
     AsyncWebServer *server;
@@ -695,6 +760,9 @@ class BlynkWifi
 
     unsigned long configTimeout;
     bool hadConfigData = false;
+    
+    bool isForcedConfigPortal   = false;
+    bool persForcedConfigPortal = false;
     
     // default to channel 1
     int WiFiAPChannel = 1;
@@ -785,6 +853,126 @@ class BlynkWifi
 
   #define  CREDENTIALS_FILENAME         BLYNK_F("/wm_cred.dat")
   #define  CREDENTIALS_FILENAME_BACKUP  BLYNK_F("/wm_cred.bak")
+
+  #define  CONFIG_PORTAL_FILENAME           BLYNK_F("/wm_cp.dat")
+  #define  CONFIG_PORTAL_FILENAME_BACKUP    BLYNK_F("/wm_cp.bak")
+
+    //////////////////////////////////////////////
+    
+    void saveForcedCP(uint32_t value)
+    {
+      File file = FileFS.open(CONFIG_PORTAL_FILENAME, "w");
+      
+      BLYNK_LOG1(BLYNK_F("SaveCPFile "));
+
+      if (file)
+      {
+        file.write((uint8_t*) &value, sizeof(value));
+        file.close();
+        BLYNK_LOG1(BLYNK_F("OK"));
+      }
+      else
+      {
+        BLYNK_LOG1(BLYNK_F("failed"));
+      }
+
+      // Trying open redundant CP file
+      file = FileFS.open(CONFIG_PORTAL_FILENAME_BACKUP, "w");
+      
+      BLYNK_LOG1(BLYNK_F("SaveBkUpCPFile "));
+
+      if (file)
+      {
+        file.write((uint8_t *) &value, sizeof(value));
+        file.close();
+        BLYNK_LOG1(BLYNK_F("OK"));
+      }
+      else
+      {
+        BLYNK_LOG1(BLYNK_F("failed"));
+      }
+    }
+    
+    //////////////////////////////////////////////
+    
+    void setForcedCP(bool isPersistent)
+    {
+      uint32_t readForcedConfigPortalFlag = isPersistent? FORCED_PERS_CONFIG_PORTAL_FLAG_DATA : FORCED_CONFIG_PORTAL_FLAG_DATA;
+
+#if ( BLYNK_WM_DEBUG > 2)      
+      BLYNK_LOG1(isPersistent ? BLYNK_F("setForcedCP Persistent") : BLYNK_F("setForcedCP non-Persistent"));
+#endif
+      
+      saveForcedCP(readForcedConfigPortalFlag);
+    }
+    
+    //////////////////////////////////////////////
+    
+    void clearForcedCP()
+    {
+      uint32_t readForcedConfigPortalFlag = 0;
+
+#if ( BLYNK_WM_DEBUG > 2)      
+      BLYNK_LOG1(BLYNK_F("clearForcedCP"));
+#endif
+      
+      saveForcedCP(readForcedConfigPortalFlag);
+    }
+    
+    //////////////////////////////////////////////
+
+    bool isForcedCP()
+    {
+      uint32_t readForcedConfigPortalFlag;
+
+#if ( BLYNK_WM_DEBUG > 2)      
+      BLYNK_LOG1(BLYNK_F("Check if isForcedCP"));
+#endif
+      
+      File file = FileFS.open(CONFIG_PORTAL_FILENAME, "r");
+      BLYNK_LOG1(BLYNK_F("LoadCPFile "));
+
+      if (!file)
+      {
+        BLYNK_LOG1(BLYNK_F("failed"));
+
+        // Trying open redundant config file
+        file = FileFS.open(CONFIG_PORTAL_FILENAME_BACKUP, "r");
+        BLYNK_LOG1(BLYNK_F("LoadBkUpCPFile "));
+
+        if (!file)
+        {
+          BLYNK_LOG1(BLYNK_F("failed"));
+          return false;
+        }
+       }
+
+      file.readBytes((char *) &readForcedConfigPortalFlag, sizeof(readForcedConfigPortalFlag));
+
+      BLYNK_LOG1(BLYNK_F("OK"));
+      file.close();
+      
+      // Return true if forced CP (0xDEADBEEF read at offset EPROM_START + DRD_FLAG_DATA_SIZE + CONFIG_DATA_SIZE)
+      // => set flag noForcedConfigPortal = false     
+      if (readForcedConfigPortalFlag == FORCED_CONFIG_PORTAL_FLAG_DATA)
+      {       
+        persForcedConfigPortal = false;
+        return true;
+      }
+      else if (readForcedConfigPortalFlag == FORCED_PERS_CONFIG_PORTAL_FLAG_DATA)
+      {       
+        persForcedConfigPortal = true;
+        return true;
+      }
+      else
+      {       
+        return false;
+      }
+    }
+    
+    //////////////////////////////////////////////
+
+#if USE_DYNAMIC_PARAMETERS
 
     bool checkDynamicData(void)
     {
@@ -879,6 +1067,8 @@ class BlynkWifi
       
       return true;    
     }
+    
+    //////////////////////////////////////////////
 
     bool loadDynamicData(void)
     {
@@ -938,6 +1128,8 @@ class BlynkWifi
       
       return true;    
     }
+    
+    //////////////////////////////////////////////
 
     void saveDynamicData(void)
     {
@@ -1020,6 +1212,9 @@ class BlynkWifi
         BLYNK_LOG1(BLYNK_F("failed"));
       }   
     }
+#endif   
+    
+    //////////////////////////////////////////////
 
     void loadConfigData(void)
     {
@@ -1046,6 +1241,8 @@ class BlynkWifi
       BLYNK_LOG1(BLYNK_F("OK"));
       file.close();
     }
+    
+    //////////////////////////////////////////////
 
     void saveConfigData(void)
     {
@@ -1083,16 +1280,23 @@ class BlynkWifi
       }
     }
     
+    //////////////////////////////////////////////
+    
     void saveAllConfigData(void)
     {
-      saveConfigData();     
+      saveConfigData();    
+       
+#if USE_DYNAMIC_PARAMETERS      
       saveDynamicData();
+#endif
     }
+    
+    //////////////////////////////////////////////
 
     // Return false if init new EEPROM or SPIFFS/LittleFS. No more need trying to connect. Go directly to config mode
     bool getConfigData()
     {
-      bool dynamicDataValid;
+      bool dynamicDataValid = true;
       int calChecksum;
       
       hadConfigData = false;
@@ -1126,8 +1330,12 @@ class BlynkWifi
         // Don't need Config Portal anymore
         return true; 
       }
+#if USE_DYNAMIC_PARAMETERS      
       else if ( ( FileFS.exists(CONFIG_FILENAME)      || FileFS.exists(CONFIG_FILENAME_BACKUP) ) &&
                 ( FileFS.exists(CREDENTIALS_FILENAME) || FileFS.exists(CREDENTIALS_FILENAME_BACKUP) ) )
+#else
+      else if ( FileFS.exists(CONFIG_FILENAME) || FileFS.exists(CONFIG_FILENAME_BACKUP) )
+#endif   
       {
         // if config file exists, load
         loadConfigData();
@@ -1141,31 +1349,34 @@ class BlynkWifi
 
         BLYNK_LOG4(BLYNK_F("CCSum=0x"), String(calChecksum, HEX),
                    BLYNK_F(",RCSum=0x"), String(BlynkESP32_WM_config.checkSum, HEX));
-                 
+
+#if USE_DYNAMIC_PARAMETERS                 
         // Load dynamic data
         dynamicDataValid = loadDynamicData();
         
         if (dynamicDataValid)
         {
-#if ( BLYNK_WM_DEBUG > 2)      
+  #if ( BLYNK_WM_DEBUG > 2)      
           BLYNK_LOG1(BLYNK_F("Valid Stored Dynamic Data"));
-#endif          
+  #endif          
         }
-#if ( BLYNK_WM_DEBUG > 2)  
+  #if ( BLYNK_WM_DEBUG > 2)  
         else
         {
           BLYNK_LOG1(BLYNK_F("Invalid Stored Dynamic Data. Ignored"));
         }
+  #endif
 #endif
       }
       else    
       {
         // Not loading Default config data, but having no config file => Config Portal
         return false;
-      }
+      }    
 
       if ( (strncmp(BlynkESP32_WM_config.header, BLYNK_BOARD_TYPE, strlen(BLYNK_BOARD_TYPE)) != 0) ||
            (calChecksum != BlynkESP32_WM_config.checkSum) || !dynamicDataValid )
+                      
       {         
         // Including Credentials CSum
         BLYNK_LOG2(BLYNK_F("InitCfgFile,sz="), sizeof(BlynkESP32_WM_config));
@@ -1177,32 +1388,34 @@ class BlynkWifi
         }
         else
         {
-          memset(&BlynkESP32_WM_config, 0, sizeof(BlynkESP32_WM_config));     
+          memset(&BlynkESP32_WM_config, 0, sizeof(BlynkESP32_WM_config));       
               
           strcpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_ssid,      NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_pw,        NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_ssid,      NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_pw,        NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_server,  NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_token,   NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_server,  NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_token,   NO_CONFIG);
-        BlynkESP32_WM_config.blynk_port = BLYNK_SERVER_HARDWARE_PORT;
-        strcpy(BlynkESP32_WM_config.blynk_bt_tk,      NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.blynk_ble_tk,     NO_CONFIG);
-        strcpy(BlynkESP32_WM_config.board_name,       NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_pw,        NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_ssid,      NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_pw,        NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_server,  NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_token,   NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_server,  NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_token,   NO_CONFIG);
+          BlynkESP32_WM_config.blynk_port = BLYNK_SERVER_HARDWARE_PORT;
+          strcpy(BlynkESP32_WM_config.blynk_bt_tk,      NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.blynk_ble_tk,     NO_CONFIG);
+          strcpy(BlynkESP32_WM_config.board_name,       NO_CONFIG);
           
+#if USE_DYNAMIC_PARAMETERS       
           for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
           {
             // Actual size of pdata is [maxlen + 1]
             memset(myMenuItems[i].pdata, 0, myMenuItems[i].maxlen + 1);
             strncpy(myMenuItems[i].pdata, NO_CONFIG, myMenuItems[i].maxlen);
           }
+#endif 
         }
     
         strcpy(BlynkESP32_WM_config.header, BLYNK_BOARD_TYPE);
         
-        #if ( BLYNK_WM_DEBUG > 2)
+        #if (USE_DYNAMIC_PARAMETERS && ( BLYNK_WM_DEBUG > 2) )
         for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
         {
           BLYNK_LOG4(BLYNK_F("g:myMenuItems["), i, BLYNK_F("]="), myMenuItems[i].pdata );
@@ -1259,17 +1472,78 @@ class BlynkWifi
   #endif
 
   #ifndef EEPROM_START
-    #define EEPROM_START     0      //define 256 in DRD
+    #define EEPROM_START     0      //define 256 in DRD/MRD
   #else
-    #if (EEPROM_START + FLAG_DATA_SIZE + CONFIG_DATA_SIZE > EEPROM_SIZE)
-      #error EPROM_START + FLAG_DATA_SIZE + CONFIG_DATA_SIZE > EEPROM_SIZE. Please adjust.
+    #if (EEPROM_START + FLAG_DATA_SIZE + CONFIG_DATA_SIZE + FORCED_CONFIG_PORTAL_FLAG_DATA_SIZE > EEPROM_SIZE)
+      #error EPROM_START + FLAG_DATA_SIZE + CONFIG_DATA_SIZE + FORCED_CONFIG_PORTAL_FLAG_DATA_SIZE > EEPROM_SIZE. Please adjust.
     #endif
-#endif
+  #endif
 
 // Stating positon to store Blynk8266_WM_config
 #define BLYNK_EEPROM_START    (EEPROM_START + FLAG_DATA_SIZE)
 
-    bool checkDynamicData(void)
+    //////////////////////////////////////////////
+    
+    void setForcedCP(bool isPersistent)
+    {
+      uint32_t readForcedConfigPortalFlag = isPersistent? FORCED_PERS_CONFIG_PORTAL_FLAG_DATA : FORCED_CONFIG_PORTAL_FLAG_DATA;
+
+#if ( BLYNK_WM_DEBUG > 2)      
+      BLYNK_LOG1(BLYNK_F("setForcedCP"));
+#endif
+      
+      EEPROM.put(BLYNK_EEPROM_START + CONFIG_DATA_SIZE, readForcedConfigPortalFlag);
+      EEPROM.commit();
+    }
+    //////////////////////////////////////////////
+    
+    void clearForcedCP()
+    {
+#if ( BLYNK_WM_DEBUG > 2)    
+      BLYNK_LOG1(BLYNK_F("clearForcedCP"));
+#endif
+      
+      EEPROM.put(BLYNK_EEPROM_START + CONFIG_DATA_SIZE, 0);
+      EEPROM.commit();
+    }
+    
+    //////////////////////////////////////////////
+
+    bool isForcedCP()
+    {
+      uint32_t readForcedConfigPortalFlag;
+
+#if ( BLYNK_WM_DEBUG > 2)      
+      BLYNK_LOG1(BLYNK_F("Check if isForcedCP"));
+#endif
+      
+      // Return true if forced CP (0xDEADBEEF read at offset EPROM_START + DRD_FLAG_DATA_SIZE + CONFIG_DATA_SIZE)
+      // => set flag noForcedConfigPortal = false
+      EEPROM.get(BLYNK_EEPROM_START + CONFIG_DATA_SIZE, readForcedConfigPortalFlag);
+      
+      // Return true if forced CP (0xDEADBEEF read at offset EPROM_START + DRD_FLAG_DATA_SIZE + CONFIG_DATA_SIZE)
+      // => set flag noForcedConfigPortal = false     
+      if (readForcedConfigPortalFlag == FORCED_CONFIG_PORTAL_FLAG_DATA)
+      {       
+        persForcedConfigPortal = false;
+        return true;
+      }
+      else if (readForcedConfigPortalFlag == FORCED_PERS_CONFIG_PORTAL_FLAG_DATA)
+      {       
+        persForcedConfigPortal = true;
+        return true;
+      }
+      else
+      {       
+        return false;
+      }
+    }
+    
+    //////////////////////////////////////////////
+    
+#if USE_DYNAMIC_PARAMETERS
+    
+    bool checkDynamicData()
     {
       int checkSum = 0;
       int readCheckSum;
@@ -1277,7 +1551,7 @@ class BlynkWifi
       #define BUFFER_LEN      128
       char readBuffer[BUFFER_LEN + 1];
       
-      uint16_t offset = BLYNK_EEPROM_START + sizeof(BlynkESP32_WM_config);
+      uint16_t offset = BLYNK_EEPROM_START + sizeof(BlynkESP32_WM_config) + FORCED_CONFIG_PORTAL_FLAG_DATA_SIZE;
                 
       // Find the longest pdata, then dynamically allocate buffer. Remember to free when done
       // This is used to store tempo data to calculate checksum to see of data is valid
@@ -1329,12 +1603,13 @@ class BlynkWifi
       return true;    
     }
 
-
-    bool EEPROM_getDynamicData(void)
+    //////////////////////////////////////////////
+    
+    bool EEPROM_getDynamicData()
     {
       int readCheckSum;
       int checkSum = 0;
-      uint16_t offset = BLYNK_EEPROM_START + sizeof(BlynkESP32_WM_config);
+      uint16_t offset = BLYNK_EEPROM_START + sizeof(BlynkESP32_WM_config) + FORCED_CONFIG_PORTAL_FLAG_DATA_SIZE;
            
       totalDataSize = sizeof(BlynkESP32_WM_config) + sizeof(readCheckSum);
       
@@ -1368,11 +1643,13 @@ class BlynkWifi
       
       return true;
     }
+    
+    //////////////////////////////////////////////
 
-    void EEPROM_putDynamicData(void)
+    void EEPROM_putDynamicData()
     {
       int checkSum = 0;
-      uint16_t offset = BLYNK_EEPROM_START + sizeof(BlynkESP32_WM_config);
+      uint16_t offset = BLYNK_EEPROM_START + sizeof(BlynkESP32_WM_config) + FORCED_CONFIG_PORTAL_FLAG_DATA_SIZE;
                 
       for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
       {       
@@ -1395,11 +1672,14 @@ class BlynkWifi
       
       BLYNK_LOG2(F("CrWCSum=0x"), String(checkSum, HEX));
     }
+#endif
+    
+    //////////////////////////////////////////////
     
     // Return false if init new EEPROM or SPIFFS/LittleFS. No more need trying to connect. Go directly to config mode
     bool getConfigData()
     {
-      bool dynamicDataValid;
+      bool dynamicDataValid = true;
       int calChecksum;
       
       hadConfigData = false; 
@@ -1438,21 +1718,24 @@ class BlynkWifi
 
         BLYNK_LOG4(BLYNK_F("CCSum=0x"), String(calChecksum, HEX),
                    BLYNK_F(",RCSum=0x"), String(BlynkESP32_WM_config.checkSum, HEX));
+
+#if USE_DYNAMIC_PARAMETERS
                  
         // Load dynamic data from EEPROM
         dynamicDataValid = EEPROM_getDynamicData();
         
         if (dynamicDataValid)
         {
-#if ( BLYNK_WM_DEBUG > 2)      
+  #if ( BLYNK_WM_DEBUG > 2)      
           BLYNK_LOG1(BLYNK_F("Valid Stored Dynamic Data"));
-#endif          
+  #endif          
         }
-#if ( BLYNK_WM_DEBUG > 2)  
+  #if ( BLYNK_WM_DEBUG > 2)  
         else
         {
           BLYNK_LOG1(BLYNK_F("Invalid Stored Dynamic Data. Ignored"));
         }
+  #endif
 #endif
       }
         
@@ -1484,17 +1767,19 @@ class BlynkWifi
           strcpy(BlynkESP32_WM_config.blynk_ble_tk,     NO_CONFIG);
           strcpy(BlynkESP32_WM_config.board_name,       NO_CONFIG);
 
+#if USE_DYNAMIC_PARAMETERS        
           for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
           {
             // Actual size of pdata is [maxlen + 1]
             memset(myMenuItems[i].pdata, 0, myMenuItems[i].maxlen + 1);
             strncpy(myMenuItems[i].pdata, NO_CONFIG, myMenuItems[i].maxlen);
           }
+#endif 
         }
     
         strcpy(BlynkESP32_WM_config.header, BLYNK_BOARD_TYPE);
         
-        #if ( BLYNK_WM_DEBUG > 2)    
+        #if ( USE_DYNAMIC_PARAMETERS && ( BLYNK_WM_DEBUG > 2) )   
         for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
         {
           BLYNK_LOG4(BLYNK_F("g:myMenuItems["), i, BLYNK_F("]="), myMenuItems[i].pdata );
@@ -1527,6 +1812,8 @@ class BlynkWifi
       
       return true;
     }
+    
+    //////////////////////////////////////////////
 
     void saveConfigData()
     {
@@ -1538,6 +1825,8 @@ class BlynkWifi
       
       EEPROM.commit();
     }
+    
+    //////////////////////////////////////////////
     
     void saveAllConfigData(void)
     {
@@ -1552,6 +1841,8 @@ class BlynkWifi
     }
 
 #endif
+
+    //////////////////////////////////////////////
 
     bool connectMultiBlynk(void)
     {
@@ -1614,12 +1905,15 @@ class BlynkWifi
       return status;
     }
     
+    //////////////////////////////////////////////
+    
     void createHTML(String &root_html_template)
     {
       String pitem;
       
       root_html_template = String(BLYNK_WM_HTML_HEAD)  + BLYNK_WM_FLDSET_START;
-      
+
+#if USE_DYNAMIC_PARAMETERS      
       for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
       {
         pitem = String(BLYNK_WM_HTML_PARAM);
@@ -1630,9 +1924,11 @@ class BlynkWifi
         
         root_html_template += pitem;
       }
+#endif
       
       root_html_template += String(BLYNK_WM_FLDSET_END) + BLYNK_WM_HTML_BUTTON + BLYNK_WM_HTML_SCRIPT;     
-      
+
+#if USE_DYNAMIC_PARAMETERS      
       for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
       {
         pitem = String(BLYNK_WM_HTML_SCRIPT_ITEM);
@@ -1641,12 +1937,14 @@ class BlynkWifi
         
         root_html_template += pitem;
       }
+#endif
       
       root_html_template += String(BLYNK_WM_HTML_SCRIPT_END) + BLYNK_WM_HTML_END;
       
       return;     
     }
-    ////
+    
+    //////////////////////////////////////////////
     
     void handleRequest(AsyncWebServerRequest *request)
     {
@@ -1693,15 +1991,17 @@ class BlynkWifi
           result.replace("[[bltk]]",   BlynkESP32_WM_config.blynk_ble_tk);
           result.replace("[[nm]]",     BlynkESP32_WM_config.board_name);
 
+#if USE_DYNAMIC_PARAMETERS          
+          // Load default configuration        
           for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
           {
             String toChange = String("[[") + myMenuItems[i].id + "]]";
             result.replace(toChange, myMenuItems[i].pdata);
-
-#if ( BLYNK_WM_DEBUG > 2)  
+  #if ( BLYNK_WM_DEBUG > 2)                 
             BLYNK_LOG4(BLYNK_F("h1:myMenuItems["), i, BLYNK_F("]="), myMenuItems[i].pdata )
-#endif             
+  #endif            
           }
+#endif
 
           request->send(200, "text/html", result);
 
@@ -1714,153 +2014,176 @@ class BlynkWifi
           strcpy(BlynkESP32_WM_config.header, BLYNK_BOARD_TYPE);
         }
 
-        if (key == "id")
+#if USE_DYNAMIC_PARAMETERS
+        if (!menuItemUpdated)
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("id: = "), value.c_str());
-#endif          
-        
+          // Don't need to free
+          menuItemUpdated = new bool[NUM_MENU_ITEMS];
+          
+          if (menuItemUpdated)
+          {
+            for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
+            {           
+              // To flag item is not yet updated
+              menuItemUpdated[i] = false;           
+            }
+  #if ( BLYNK_WM_DEBUG > 2)                 
+            BLYNK_LOG1(BLYNK_F("h: Init menuItemUpdated" ));
+  #endif                        
+          }
+          else
+          {
+            BLYNK_LOG1(BLYNK_F("h: Error can't alloc memory for menuItemUpdated" ));
+          }
+        }  
+#endif
+
+        static bool id_Updated   = false;
+        static bool pw_Updated   = false;
+        static bool id1_Updated  = false;
+        static bool pw1_Updated  = false;
+        static bool sv_Updated   = false;
+        static bool tk_Updated   = false;
+        static bool sv1_Updated  = false;
+        static bool tk1_Updated  = false;
+        static bool pt_Updated   = false;
+        static bool bttk_Updated = false;
+        static bool bltk_Updated = false;
+        static bool nm_Updated   = false;
+
+        if (!id_Updated && (key == String("id")))
+        {
+          id_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.WiFi_Creds[0].wifi_ssid) - 1)
             strcpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_ssid, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_ssid, value.c_str(), sizeof(BlynkESP32_WM_config.WiFi_Creds[0].wifi_ssid) - 1);
         }
-        else if (key == "pw")
+        else if (!pw_Updated && (key == String("pw")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("pw: = "), value.c_str());
-#endif          
-        
+          pw_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.WiFi_Creds[0].wifi_pw) - 1)
             strcpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_pw, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.WiFi_Creds[0].wifi_pw, value.c_str(), sizeof(BlynkESP32_WM_config.WiFi_Creds[0].wifi_pw) - 1);
         }
-        else if (key == "id1")
+        else if (!id1_Updated && (key == String("id1")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("id1: = "), value.c_str());
-#endif          
-        
+          id1_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.WiFi_Creds[1].wifi_ssid) - 1)
             strcpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_ssid, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_ssid, value.c_str(), sizeof(BlynkESP32_WM_config.WiFi_Creds[1].wifi_ssid) - 1);
         }
-        else if (key == "pw1")
+        else if (!pw1_Updated && (key == String("pw1")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("pw1: = "), value.c_str());
-#endif          
-        
+          pw1_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.WiFi_Creds[1].wifi_pw) - 1)
             strcpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_pw, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.WiFi_Creds[1].wifi_pw, value.c_str(), sizeof(BlynkESP32_WM_config.WiFi_Creds[1].wifi_pw) - 1);
         }
-        else if (key == "sv")
+        else if (!sv_Updated && (key == String("sv")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("sv: = "), value.c_str());
-#endif          
-        
+          sv_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.Blynk_Creds[0].blynk_server) - 1)
             strcpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_server, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_server, value.c_str(), sizeof(BlynkESP32_WM_config.Blynk_Creds[0].blynk_server) - 1);
         }
-        else if (key == "tk")
+        else if (!tk_Updated && (key == String("tk")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("tk: = "), value.c_str());
-#endif          
-        
+          tk_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.Blynk_Creds[0].blynk_token) - 1)
             strcpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_token, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.Blynk_Creds[0].blynk_token, value.c_str(), sizeof(BlynkESP32_WM_config.Blynk_Creds[0].blynk_token) - 1);
         }
-        else if (key == "sv1")
+        else if (!sv1_Updated && (key == String("sv1")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("sv1: = "), value.c_str());
-#endif          
-        
+          sv1_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.Blynk_Creds[1].blynk_server) - 1)
             strcpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_server, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_server, value.c_str(), sizeof(BlynkESP32_WM_config.Blynk_Creds[1].blynk_server) - 1);
         }
-        else if (key == "tk1")
+        else if (!tk1_Updated && (key == String("tk1")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("tk1: = "), value.c_str());
-#endif          
-        
+          tk1_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.Blynk_Creds[1].blynk_token) - 1)
             strcpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_token, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.Blynk_Creds[1].blynk_token, value.c_str(), sizeof(BlynkESP32_WM_config.Blynk_Creds[1].blynk_token) - 1);
         }
-        else if (key == "pt")
+        else if (!pt_Updated && (key == String("pt")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("pt = "), value.toInt());
-#endif          
-        
+          pt_Updated = true;
           number_items_Updated++;
+          
           BlynkESP32_WM_config.blynk_port = value.toInt();
         }
-        else if (key == "bttk")
+        else if (!bttk_Updated && (key == String("bttk")))
         {
 #if ( BLYNK_WM_DEBUG > 2)        
           BLYNK_LOG2(BLYNK_F("bttk: = "), value.c_str());
 #endif          
-        
+          bttk_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.blynk_bt_tk) - 1)
             strcpy(BlynkESP32_WM_config.blynk_bt_tk, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.blynk_bt_tk, value.c_str(), sizeof(BlynkESP32_WM_config.blynk_bt_tk) - 1);
         }
-        else if (key == "bltk")
+        else if (!bltk_Updated && (key == String("bltk")))
         {
 #if ( BLYNK_WM_DEBUG > 2)        
           BLYNK_LOG2(BLYNK_F("bltk: = "), value.c_str());
 #endif          
-        
+          bltk_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.blynk_ble_tk) - 1)
             strcpy(BlynkESP32_WM_config.blynk_ble_tk, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.blynk_ble_tk, value.c_str(), sizeof(BlynkESP32_WM_config.blynk_ble_tk) - 1);
         }
-        else if (key == "nm")
+        else if (!nm_Updated && (key == String("nm")))
         {
-#if ( BLYNK_WM_DEBUG > 2)        
-          BLYNK_LOG2(BLYNK_F("nm: = "), value.c_str());
-#endif          
-        
+          nm_Updated = true;
           number_items_Updated++;
+          
           if (strlen(value.c_str()) < sizeof(BlynkESP32_WM_config.board_name) - 1)
             strcpy(BlynkESP32_WM_config.board_name, value.c_str());
           else
             strncpy(BlynkESP32_WM_config.board_name, value.c_str(), sizeof(BlynkESP32_WM_config.board_name) - 1);
         }
 
+#if USE_DYNAMIC_PARAMETERS
         for (uint16_t i = 0; i < NUM_MENU_ITEMS; i++)
         {
-          if (key == myMenuItems[i].id)
+          if ( !menuItemUpdated[i] && (key == myMenuItems[i].id) )
           {
-            //BLYNK_LOG4(F("h:"), myMenuItems[i].id, F("="), value.c_str() );
+            BLYNK_LOG4(BLYNK_F("h:"), myMenuItems[i].id, BLYNK_F("="), value.c_str() );
+            
+            menuItemUpdated[i] = true;
+            
             number_items_Updated++;
 
             // Actual size of pdata is [maxlen + 1]
@@ -1870,12 +2193,20 @@ class BlynkWifi
               strcpy(myMenuItems[i].pdata, value.c_str());
             else
               strncpy(myMenuItems[i].pdata, value.c_str(), myMenuItems[i].maxlen);
+#if ( BLYNK_WM_DEBUG > 2)                   
+            BLYNK_LOG4(BLYNK_F("h2:myMenuItems["), i, BLYNK_F("]="), myMenuItems[i].pdata );
+#endif            
           }
         }
+#endif
         
         request->send(200, "text/html", "OK");
 
+#if USE_DYNAMIC_PARAMETERS
         if (number_items_Updated == NUM_CONFIGURABLE_ITEMS + NUM_MENU_ITEMS)
+#else
+        if (number_items_Updated == NUM_CONFIGURABLE_ITEMS)
+#endif
         {
 #if USE_LITTLEFS
           BLYNK_LOG2(BLYNK_F("h:Updating LittleFS:"), CONFIG_FILENAME);     
@@ -1886,10 +2217,16 @@ class BlynkWifi
 #endif
 
           saveAllConfigData();
+          
+          // Done with CP, Clear CP Flag here if forced
+          if (isForcedConfigPortal)
+          {
+            clearForcedCP();
+          }
 
           BLYNK_LOG1(BLYNK_F("h:Rst"));
 
-          // Delay then reset the ESP32 after save data
+          // Delay then reset the ESP8266 after save data
           delay(1000);
           ESP.restart();
         }

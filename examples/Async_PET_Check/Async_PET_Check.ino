@@ -1,21 +1,23 @@
 /****************************************************************************************************************************
-   Async_PET_Check.ino
-   For ESP32 using WiFi along with BlueTooth BLE
+  Async_PET_Check.ino
+  For ESP32 using WiFi along with BlueTooth BLE
+  
+  Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
+  Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
+  
+  Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
+  Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
+  Licensed under MIT license
+  
+  Version: 1.1.1
 
-   Blynk_Async_ESP32_BT_WF is a library, using AsyncWebServer instead of (ESP8266)WebServer for inclusion of both ESP32 
-   Blynk BT/BLE and WiFi libraries. Then select either one or both at runtime.
-   
-   Based on and modified from Blynk library v0.6.1 https://github.com/blynkkk/blynk-library/releases
-   Built by Khoi Hoang https://github.com/khoih-prog/Blynk_Async_ESP32_BT_WF
-   Licensed under MIT license
-   
-   Version: 1.1.0
-
-   Version Modified By   Date      Comments
-   ------- -----------  ---------- -----------
-    1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
-                                    Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
-    1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  Version Modified By   Date      Comments
+  ------- -----------  ---------- -----------
+  1.0.6   K Hoang      25/08/2020 Initial coding to use (ESP)AsyncWebServer instead of (ESP8266)WebServer. 
+                                  Bump up to v1.0.6 to sync with BlynkESP32_BT_WF v1.0.6.
+  1.1.0   K Hoang      30/12/2020 Add support to LittleFS. Remove possible compiler warnings. Update examples
+  1.1.1   K Hoang      31/01/2021 Add functions to control Config Portal (CP) from software or Virtual Switches
+                                  Fix CP and Dynamic Params bugs. To permit autoreset after timeout if DRD/MRD or forced CP 
  *****************************************************************************************************************************/
 /****************************************************************************************************************************
   Example Created by Miguel Alexandre Wisintainer
@@ -48,6 +50,36 @@ BlynkTimer timer;
 Ticker     led_ticker;
 
 int NEAR_PET = 0;
+
+#if USE_BLYNK_WM
+
+#define BLYNK_PIN_FORCED_CONFIG           V10
+#define BLYNK_PIN_FORCED_PERS_CONFIG      V20
+
+// Use button V10 (BLYNK_PIN_FORCED_CONFIG) to forced Config Portal
+BLYNK_WRITE(BLYNK_PIN_FORCED_CONFIG)
+{ 
+  if (param.asInt())
+  {
+    Serial.println( F("\nCP Button Hit. Rebooting") ); 
+
+    // This will keep CP once, clear after reset, even you didn't enter CP at all.
+    Blynk.resetAndEnterConfigPortal(); 
+  }
+}
+
+// Use button V20 (BLYNK_PIN_FORCED_PERS_CONFIG) to forced Persistent Config Portal
+BLYNK_WRITE(BLYNK_PIN_FORCED_PERS_CONFIG)
+{ 
+  if (param.asInt())
+  {
+    Serial.println( F("\nPersistent CP Button Hit. Rebooting") ); 
+   
+    // This will keep CP forever, until you successfully enter CP, and Save data to clear the flag.
+    Blynk.resetAndEnterConfigPortalPersistent();
+  }
+}
+#endif
 
 void set_led(byte status)
 {
@@ -179,6 +211,8 @@ void setup()
   Serial.begin(115200);
   while (!Serial);
 
+  delay(200);
+
 #if (USE_LITTLEFS)
   Serial.print(F("\nStarting Async_PET_Check_BLE using LITTLEFS"));
 #elif (USE_SPIFFS)
@@ -188,11 +222,12 @@ void setup()
 #endif
 
 #if USE_SSL
-  Serial.println(" with SSL on " + String(ARDUINO_BOARD));
+  Serial.print(F(" with SSL on "));
 #else
-  Serial.println(" without SSL on " + String(ARDUINO_BOARD));
+  Serial.print(F(" without SSL on "));
 #endif
 
+  Serial.println(ARDUINO_BOARD);
   Serial.println(BLYNK_ASYNC_ESP32_BT_WF_VERSION);
   
 #if USE_BLYNK_WM  
