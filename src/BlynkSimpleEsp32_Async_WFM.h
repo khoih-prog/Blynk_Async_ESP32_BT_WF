@@ -37,7 +37,7 @@
   #error This code is intended to run on the ESP32 platform! Please check your Tools->Board setting.
 #endif
 
-#define BLYNK_ASYNC_ESP32_BT_WF_VERSION       "Blynk_Async_ESP32_BT_WF v1.1.0"
+#define BLYNK_ASYNC_ESP32_BT_WF_VERSION       "Blynk_Async_ESP32_BT_WF v1.1.1"
 
 #define BLYNK_SEND_ATOMIC
 
