@@ -672,7 +672,7 @@ After you connected, please, go to http://192.168.4.1 or the configured AP IP. T
 
 Enter your WiFi and Blynk Credentials (Server, Port, WiFi/BT/BLE tokens) 
 
-<### 1. Without SCAN_WIFI_NETWORKS
+### 1. Without SCAN_WIFI_NETWORKS
 
 
 <p align="center">
