@@ -1809,7 +1809,7 @@ Check these new features thanks to his direct contribution and/or enhancement re
     <td align="center"><a href="https://github.com/tcpipchip"><img src="https://github.com/tcpipchip.png" width="100px;" alt="tcpipchip"/><br /><sub><b>⭐️ tcpipchip</b></sub></a><br /></td>
     <td align="center"><a href="https://github.com/thorathome"><img src="https://github.com/thorathome.png" width="100px;" alt="thorathome"/><br /><sub><b>⭐️⭐️ Thor Johnson</b></sub></a><br /></td>
     <td align="center"><a href="https://github.com/bizprof"><img src="https://github.com/bizprof.png" width="100px;" alt="bizprof"/><br /><sub><b>⭐️⭐️ Michael H. "bizprof"</b></sub></a><br /></td>
-    <td align="center"><a href="https://github.com/Valeria"><img src="https://github.com/Valeria.png" width="100px;" alt="Valeria"/><br /><sub><b>Valeria"</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/Valeria"><img src="https://github.com/Valeria.png" width="100px;" alt="Valeria"/><br /><sub><b>Valeria</b></sub></a><br /></td>
   </tr> 
 </table>
 
